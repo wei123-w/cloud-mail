@@ -1,0 +1,46 @@
+﻿name = "cloud-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "db"
+	database_name = "xiaoyud1"
+	database_id = "a32a72a1-7e42-46c1-9224-ef8d01709392"
+
+[[kv_namespaces]]
+binding = "kv"
+	id = "e75969586b0f4c41a1332da316ca8161"
+
+#[[r2_buckets]]
+#binding = "r2"
+#bucket_name = ""
+
+#[[send_email]]
+#name = "email"
+
+[ai]
+binding = "ai"
+
+[assets]
+binding = "assets"
+	directory = "./dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+ai_model = "@cf/meta/llama-3.1-8b-instruct-fast"
+analysis_cache = false
+orm_log = false
+domain = ["xiaoyugonju.eu.cc"]
+admin = "admin@xiaoyugonju.eu.cc"
+jwt_secret = "IN3yBcUEbdWa2CkQHiTuSqYV91xAzODm"
+
+[build]
+command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"
