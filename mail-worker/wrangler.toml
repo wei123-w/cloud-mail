@@ -38,7 +38,7 @@ crons = ["0 * * * *"]
 ai_model = "@cf/meta/llama-3.1-8b-instruct-fast"
 analysis_cache = false
 orm_log = false
-domain = ["xiaoyugonju.eu.cc"]
+domain = ["xiaoyugonju.eu.cc", "xiaoyuyouxiang.dpdns.org"]
 admin = "admin@xiaoyugonju.eu.cc"
 jwt_secret = "IN3yBcUEbdWa2CkQHiTuSqYV91xAzODm"
 
