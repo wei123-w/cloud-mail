@@ -216,6 +216,12 @@ async function testConnection({ receive, send, credential, connect }) {
 	try {
 		session = await openSession(send, 'send', connect);
 		assertSmtpSuccess(await session.readSmtp());
+		await session.write('EHLO cloud-mail\r\n');
+		assertSmtpSuccess(await session.readSmtp());
+		const username = String(credential?.username || '');
+		const password = String(getCredentialValue(credential, 'password'));
+		await session.write(`AUTH PLAIN ${encodeBase64(`\0${username}\0${password}`)}\r\n`);
+		assertSmtpSuccess(await session.readSmtp(), 235);
 		await session.write('QUIT\r\n');
 		await session.readSmtp();
 	} catch {

@@ -10,6 +10,15 @@ import {
 const provider = 'microsoft';
 const apiBase = 'https://graph.microsoft.com/v1.0';
 
+function encodeBase64(content) {
+		const bytes = content instanceof Uint8Array ? content : new TextEncoder().encode(content || '');
+		let binary = '';
+		for (let index = 0; index < bytes.length; index += 0x8000) {
+			binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+		}
+		return btoa(binary);
+}
+
 function startAuthorization(c, userId) {
 	return startOAuthAuthorization(c, provider, userId, {
 		scope: 'openid profile email offline_access Mail.ReadWrite Mail.Send'
@@ -61,7 +70,13 @@ async function sendMessage({ c, credential, message }) {
 				subject: message.subject || '',
 				body: { contentType: message.html ? 'HTML' : 'Text', content: message.html || message.text || '' },
 				toRecipients: (message.to || []).map(item => ({ emailAddress: { address: item.address, name: item.name } })),
-				ccRecipients: (message.cc || []).map(item => ({ emailAddress: { address: item.address, name: item.name } }))
+				ccRecipients: (message.cc || []).map(item => ({ emailAddress: { address: item.address, name: item.name } })),
+				attachments: (message.attachments || []).map(item => ({
+					'@odata.type': '#microsoft.graph.fileAttachment',
+					name: item.filename,
+					contentType: item.mimeType || 'application/octet-stream',
+					contentBytes: encodeBase64(item.content)
+				}))
 			}
 		})
 	}));
