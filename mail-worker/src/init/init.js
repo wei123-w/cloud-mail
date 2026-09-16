@@ -32,6 +32,7 @@ const dbInit = {
 		await this.v3_1DB(c);
 		await this.v3_2DB(c);
 		await this.v3_3DB(c);
+		await this.v3_4DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},
@@ -56,6 +57,72 @@ const dbInit = {
 			]);
 		} catch (e) {
 			console.warn(`跳过字段：${e.message}`);
+		}
+	},
+
+	async v3_4DB(c) {
+		const statements = [
+			`ALTER TABLE account ADD COLUMN source_type INTEGER NOT NULL DEFAULT 0;`,
+			`CREATE TABLE IF NOT EXISTS external_account (
+				external_account_id INTEGER PRIMARY KEY AUTOINCREMENT,
+				account_id INTEGER NOT NULL,
+				user_id INTEGER NOT NULL,
+				provider TEXT NOT NULL DEFAULT 'generic',
+				auth_type TEXT NOT NULL DEFAULT 'password',
+				email TEXT NOT NULL,
+				receive_host TEXT NOT NULL DEFAULT '',
+				receive_port INTEGER NOT NULL DEFAULT 993,
+				receive_security TEXT NOT NULL DEFAULT 'tls',
+				send_host TEXT NOT NULL DEFAULT '',
+				send_port INTEGER NOT NULL DEFAULT 465,
+				send_security TEXT NOT NULL DEFAULT 'tls',
+				username TEXT NOT NULL DEFAULT '',
+				credential TEXT NOT NULL DEFAULT '',
+				status INTEGER NOT NULL DEFAULT 0,
+				sync_cursor TEXT NOT NULL DEFAULT '',
+				sync_status INTEGER NOT NULL DEFAULT 0,
+				last_sync_time DATETIME,
+				last_error TEXT NOT NULL DEFAULT '',
+				create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+				is_del INTEGER NOT NULL DEFAULT 0
+			);`,
+			`CREATE TABLE IF NOT EXISTS external_message (
+				external_message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+				external_account_id INTEGER NOT NULL,
+				remote_id TEXT NOT NULL,
+				remote_thread_id TEXT NOT NULL DEFAULT '',
+				email_id INTEGER NOT NULL,
+				create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`
+		];
+
+		try {
+			await c.env.db.prepare(`ALTER TABLE external_account ADD COLUMN status INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过外部账号状态字段：${e.message}`);
+		}
+
+		for (const statement of statements) {
+			try {
+				await c.env.db.prepare(statement).run();
+			} catch (e) {
+				console.warn(`跳过数据库升级：${e.message}`);
+			}
+		}
+
+		const indexes = [
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_external_account_user_email ON external_account(user_id, email COLLATE NOCASE);`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_external_account_account ON external_account(account_id);`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_external_message_account_remote ON external_message(external_account_id, remote_id);`,
+			`CREATE INDEX IF NOT EXISTS idx_external_account_sync ON external_account(is_del, sync_status, last_sync_time);`
+		];
+
+		for (const statement of indexes) {
+			try {
+				await c.env.db.prepare(statement).run();
+			} catch (e) {
+				console.warn(`跳过数据库索引：${e.message}`);
+			}
 		}
 	},
 
