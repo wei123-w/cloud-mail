@@ -21,6 +21,15 @@ function normalizeReferences(value) {
 	return String(value || '').trim();
 }
 
+function sanitizeHtml(value) {
+	return String(value || '')
+		.replace(/<\s*(script|iframe|object|embed|form|meta|link)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+		.replace(/<\s*(script|iframe|object|embed|form|meta|link)[^>]*\/?>/gi, '')
+		.replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+		.replace(/\s+(href|src|action|formaction)\s*=\s*(["'])\s*javascript\s*:[\s\S]*?\2/gi, ' $1="#"')
+		.replace(/\b(href|src|action|formaction)\s*=\s*(["']?)\s*javascript\s*:[^\s'">]*\2/gi, '$1="#"');
+}
+
 function normalizeAttachment(item = {}) {
 	return {
 		filename: String(item.filename || '附件').trim(),
@@ -45,16 +54,17 @@ function normalizeParsedMessage(parsed = {}, metadata = {}) {
 		bcc: normalizeAddresses(parsed.bcc),
 		subject: String(parsed.subject || '').trim(),
 		text: String(parsed.text || ''),
-		html: String(parsed.html || ''),
+		html: sanitizeHtml(parsed.html),
 		createTime: parsed.date || new Date().toISOString(),
 		attachments: Array.isArray(parsed.attachments) ? parsed.attachments.map(normalizeAttachment) : []
 	};
 }
 
-export { normalizeAddress, normalizeAddresses, normalizeParsedMessage, normalizeReferences };
+export { normalizeAddress, normalizeAddresses, normalizeParsedMessage, normalizeReferences, sanitizeHtml };
 export default {
 	normalizeAddress,
 	normalizeAddresses,
 	normalizeParsedMessage,
-	normalizeReferences
+	normalizeReferences,
+	sanitizeHtml
 };

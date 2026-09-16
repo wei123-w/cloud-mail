@@ -92,6 +92,20 @@ describe('外部邮箱邮件标准化', () => {
 		expect(parsed.attachments[0].filename).toBe('hello.txt');
 		expect(new TextDecoder().decode(parsed.attachments[0].content)).toBe('附件内容');
 	});
+
+	it('标准化邮件会移除脚本、事件属性和危险链接', async () => {
+		const parsed = await mimeService.parseRawMessage([
+			'From: sender@example.com',
+			'To: recipient@example.com',
+			'Content-Type: text/html; charset=utf-8',
+			'',
+			'<script>alert(1)</script><img onerror="alert(2)" src="javascript:alert(3)"><a href="javascript:alert(4)">链接</a>'
+		].join('\r\n'));
+
+		expect(parsed.html).not.toContain('<script');
+		expect(parsed.html).not.toContain('onerror');
+		expect(parsed.html).not.toContain('javascript:');
+	});
 });
 
 function createContext() {
