@@ -8,6 +8,7 @@ import externalAccount from '../entity/external-account.js';
 import externalMessage from '../entity/external-message.js';
 import credentialUtils from '../utils/credential-utils.js';
 import fileUtils from '../utils/file-utils.js';
+import verifyUtils from '../utils/verify-utils.js';
 import r2Service from './r2-service.js';
 import googleAdapter from './external-mail/google-adapter.js';
 import microsoftAdapter from './external-mail/microsoft-adapter.js';
@@ -50,6 +51,7 @@ function normalizeGenericParams(params = {}) {
 	const username = String(params.username || emailValue).trim();
 	const password = String(params.password || '');
 	if (!emailValue || !username || !password) throw new BizError('邮箱、用户名和密码不能为空');
+	if (!verifyUtils.isEmail(emailValue)) throw new BizError('非法邮箱');
 	const receiveInput = params.receive || {
 		host: params.receiveHost,
 		port: params.receivePort,
