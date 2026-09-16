@@ -65,6 +65,11 @@ const routes = [
         component: () => import('@/views/test/index.vue')
     },
     {
+        path: '/external-account/oauth/callback',
+        name: 'external-account-oauth-callback',
+        component: () => import('@/views/external-account-callback/index.vue')
+    },
+    {
         path: '/:pathMatch(.*)*',
         name: '404',
         component: () => import('@/views/404/index.vue')

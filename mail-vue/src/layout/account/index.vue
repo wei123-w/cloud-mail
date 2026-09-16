@@ -9,7 +9,8 @@
         <el-card class="item" :class="itemBg(item.accountId)" v-for="(item, index) in accounts" :key="item.accountId"
                  @click="changeAccount(item)">
           <div class="account">
-            {{ item.email }}
+            <span>{{ item.email }}</span>
+            <el-tag v-if="item.sourceType === 1" size="small" effect="plain">{{ $t('externalAccount') }}</el-tag>
           </div>
           <div class="opt">
             <div class="send-email" @click.stop>
@@ -25,6 +26,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">{{ $t('rename') }}</el-dropdown-item>
+                    <el-dropdown-item v-if="item.sourceType === 1" @click="syncExternalAccount(item)">{{ $t('syncExternal') }}</el-dropdown-item>
                     <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId" @click="setAsTop(item, index)">{{ $t('pin') }}</el-dropdown-item>
                     <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId && hasPerm('account:delete')"
                                       @click="remove(item)">{{ $t('delete') }}
@@ -103,6 +105,7 @@
         <el-button class="btn" type="primary" @click="submit" :loading="addLoading"
         >{{ $t('add') }}
         </el-button>
+        <el-button class="btn" plain @click="openExternal">{{ $t('bindExternalAccount') }}</el-button>
       </div>
       <div
           class="add-email-turnstile"
@@ -114,6 +117,7 @@
         <span style="font-size: 12px;color: #F56C6C" v-if="botJsError">{{ $t('verifyModuleFailed') }}</span>
       </div>
     </el-dialog>
+    <ExternalAccountDialog v-model="showExternal" @saved="handleExternalSaved" />
     <el-dialog v-model="setNameShow" :title="$t('changeUserName')">
       <div class="container">
         <el-input v-model="accountName" type="text" :placeholder="$t('username')" autocomplete="off" @keyup.enter="setName">
@@ -136,6 +140,12 @@ import {
   accountSetAllReceive,
   accountSetAsTop
 } from "@/request/account.js";
+import {
+  externalAccountDelete,
+  externalAccountList,
+  externalAccountSync
+} from "@/request/external-account.js";
+import ExternalAccountDialog from "@/components/external-account-dialog/index.vue";
 import {sleep} from "@/utils/time-utils.js"
 import {isEmail} from "@/utils/verify-utils.js";
 import {useSettingStore} from "@/store/setting.js";
@@ -152,6 +162,7 @@ const accountStore = useAccountStore();
 const settingStore = useSettingStore();
 const emailStore = useEmailStore();
 const showAdd = ref(false)
+const showExternal = ref(false)
 const addLoading = ref(false);
 const domainList = computed(() => settingStore.domainList)
 const accounts = reactive([])
@@ -310,7 +321,10 @@ function remove(account) {
     cancelButtonText: t('cancel'),
     type: 'warning'
   }).then(() => {
-    accountDelete(account.accountId).then(() => {
+    const removeRequest = account.sourceType === 1 && account.externalAccountId
+      ? externalAccountDelete(account.externalAccountId)
+      : accountDelete(account.accountId)
+    removeRequest.then(() => {
       const index = accounts.findIndex(item => item.accountId === account.accountId);
       accounts.splice(index, 1);
       if (accounts.length < queryParams.size) {
@@ -323,6 +337,17 @@ function remove(account) {
       })
     })
   });
+}
+
+function syncExternalAccount(accountItem) {
+  externalAccountSync(accountItem.externalAccountId).then(data => {
+    ElMessage({
+      message: `${t('syncExternal')}：${data?.added || 0}`,
+      type: 'success',
+      plain: true,
+    })
+    emailStore.emailScroll?.refreshList()
+  })
 }
 
 function refresh() {
@@ -351,6 +376,15 @@ function add() {
   setTimeout(() => {
     addRef.value.focus()
   }, 100)
+}
+
+function openExternal() {
+  showAdd.value = false
+  showExternal.value = true
+}
+
+function handleExternalSaved() {
+  refresh()
 }
 
 function setAsTop(account, index) {
@@ -411,6 +445,14 @@ function getAccountList() {
     if (list.length < queryParams.size) {
       noLoading.value = true
     }
+    try {
+      const externalList = await externalAccountList()
+      const externalMap = new Map((externalList || []).map(item => [item.accountId, item]))
+      list = list.map(item => externalMap.has(item.accountId) ? {...item, ...externalMap.get(item.accountId)} : item)
+    } catch {
+      // 外部账号接口不可用时仍展示本地账号列表
+    }
+
     if (accounts.length === 0) {
       accountStore.currentAccount = list[0]
     }
@@ -591,12 +633,20 @@ path[fill="#ffdda1"] {
     cursor: pointer;
 
     .account {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-weight: 400;
       font-size: 15px;
       margin-bottom: 20px;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
+
+      span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
 
     .opt {
