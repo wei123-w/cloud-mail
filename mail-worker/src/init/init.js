@@ -111,7 +111,8 @@ const dbInit = {
 		}
 
 		const indexes = [
-			`CREATE UNIQUE INDEX IF NOT EXISTS idx_external_account_user_email ON external_account(user_id, email COLLATE NOCASE);`,
+			`DROP INDEX IF EXISTS idx_external_account_user_email;`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_external_account_user_email ON external_account(user_id, email COLLATE NOCASE) WHERE is_del = 0;`,
 			`CREATE UNIQUE INDEX IF NOT EXISTS idx_external_account_account ON external_account(account_id);`,
 			`CREATE UNIQUE INDEX IF NOT EXISTS idx_external_message_account_remote ON external_message(external_account_id, remote_id);`,
 			`CREATE INDEX IF NOT EXISTS idx_external_account_sync ON external_account(is_del, sync_status, last_sync_time);`

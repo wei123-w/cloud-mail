@@ -76,6 +76,11 @@ async function sendMessage({ c, credential, message }) {
 				body: { contentType: message.html ? 'HTML' : 'Text', content: message.html || message.text || '' },
 				toRecipients: (message.to || []).map(item => ({ emailAddress: { address: item.address, name: item.name } })),
 				ccRecipients: (message.cc || []).map(item => ({ emailAddress: { address: item.address, name: item.name } })),
+				bccRecipients: (message.bcc || []).map(item => ({ emailAddress: { address: item.address, name: item.name } })),
+				internetMessageHeaders: [
+					...(message.inReplyTo ? [{ name: 'In-Reply-To', value: message.inReplyTo }] : []),
+					...(message.relation ? [{ name: 'References', value: message.relation }] : [])
+				],
 				attachments: (message.attachments || []).map(item => ({
 					'@odata.type': '#microsoft.graph.fileAttachment',
 					name: item.filename,
@@ -90,8 +95,7 @@ async function sendMessage({ c, credential, message }) {
 }
 
 async function testConnection(input) {
-	await listMessages({ ...input, limit: 1 });
-	return true;
+	return listMessages({ ...input, limit: 1 });
 }
 
 export default { startAuthorization, completeAuthorization, listMessages, getMessage, sendMessage, testConnection, getProviderConfig };

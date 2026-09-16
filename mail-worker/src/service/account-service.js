@@ -12,6 +12,7 @@ import turnstileService from './turnstile-service';
 import roleService from './role-service';
 import { t } from '../i18n/i18n';
 import verifyRecordService from './verify-record-service';
+import externalAccount from '../entity/external-account';
 
 const accountService = {
 
@@ -163,6 +164,12 @@ const accountService = {
 			throw new BizError(t('noUserAccount'));
 		}
 
+		if (accountRow.sourceType === 1) {
+			await orm(c).update(externalAccount).set({ isDel: isDel.DELETE, status: 1 }).where(eq(externalAccount.accountId, accountRow.accountId)).run();
+			await orm(c).update(account).set({ isDel: isDel.DELETE }).where(eq(account.accountId, accountRow.accountId)).run();
+			return;
+		}
+
 		const { syncDelete } = await settingService.query(c);
 		if (syncDelete === settingConst.syncDelete.OPEN) {
 			await this.physicsDelete(c, { accountId });
@@ -192,6 +199,7 @@ const accountService = {
 
 	async physicsDeleteByUserIds(c, userIds) {
 		await emailService.physicsDeleteUserIds(c, userIds);
+		await orm(c).delete(externalAccount).where(inArray(externalAccount.userId, userIds)).run();
 		await orm(c).delete(account).where(inArray(account.userId,userIds)).run();
 	},
 

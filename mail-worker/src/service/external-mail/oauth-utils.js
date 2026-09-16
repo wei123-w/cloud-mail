@@ -33,7 +33,7 @@ function getProviderConfig(c, provider) {
 }
 
 function getCredentialSecret(c) {
-	const secret = getEnv(c, 'EXTERNAL_CREDENTIAL_SECRET') || getEnv(c, 'jwt_secret');
+	const secret = getEnv(c, 'EXTERNAL_CREDENTIAL_SECRET');
 	if (!secret) throw new BizError('外部邮箱凭据密钥未配置');
 	return secret;
 }

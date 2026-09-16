@@ -149,8 +149,9 @@ async function listMessages({ receive, credential, cursor = '', since = '', limi
 function extractLiteral(response) {
 	const literal = response.match(/\{(\d+)\}\r?\n/);
 	if (!literal) throw new Error('邮件原文格式错误');
-	const start = literal.index + literal[0].length;
-	return response.slice(start, start + Number(literal[1]));
+	const prefix = new TextEncoder().encode(response.slice(0, literal.index + literal[0].length));
+	const bytes = new TextEncoder().encode(response);
+	return bytes.slice(prefix.length, prefix.length + Number(literal[1]));
 }
 
 async function getMessage({ receive, credential, remoteId, connect }) {

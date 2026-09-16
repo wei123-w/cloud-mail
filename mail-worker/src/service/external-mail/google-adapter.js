@@ -45,6 +45,7 @@ function encodeBase64Url(value) {
 
 async function listMessages({ c, credential, cursor = '', limit = 50 }) {
 	const query = new URLSearchParams({ maxResults: String(Math.min(Math.max(limit, 1), 100)) });
+	query.set('labelIds', 'INBOX');
 	if (cursor) query.set('pageToken', cursor);
 	const result = await requestWithCredential(c, provider, credential, accessToken => fetch(`${apiBase}/messages?${query}`, {
 		headers: { Authorization: `Bearer ${accessToken}` }
@@ -87,8 +88,7 @@ async function sendMessage({ c, credential, message }) {
 }
 
 async function testConnection(input) {
-	await listMessages({ ...input, limit: 1 });
-	return true;
+	return listMessages({ ...input, limit: 1 });
 }
 
 export default { startAuthorization, completeAuthorization, listMessages, getMessage, sendMessage, testConnection, getProviderConfig };

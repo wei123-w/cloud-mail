@@ -116,7 +116,7 @@ function buildExternalSendMessage(params = {}, accountInfo = {}) {
 }
 
 function getCredentialSecret(c) {
-	const secret = c?.env?.EXTERNAL_CREDENTIAL_SECRET || c?.env?.jwt_secret;
+	const secret = c?.env?.EXTERNAL_CREDENTIAL_SECRET;
 	if (!secret) throw new BizError('外部邮箱凭据密钥未配置');
 	return secret;
 }
@@ -232,7 +232,10 @@ const externalAccountService = {
 		if (params.externalAccountId) {
 			const row = await this.getById(c, params.externalAccountId, userId);
 			const credential = await decryptCredential(c, row);
-			await getAdapter(row.provider).testConnection({ c, receive: row, send: row, credential });
+			const testResult = await getAdapter(row.provider).testConnection({ c, receive: row, send: row, credential });
+			if (testResult?.credential) {
+				await orm(c).update(externalAccount).set({ credential: await encryptCredential(c, testResult.credential), lastError: '', status: normalStatus }).where(eq(externalAccount.externalAccountId, row.externalAccountId)).run();
+			}
 		} else {
 			const normalized = normalizeGenericParams(params);
 			await genericAdapter.testConnection({ ...normalized, credential: { username: normalized.username, password: normalized.password } });
@@ -270,47 +273,74 @@ const externalAccountService = {
 			eq(externalAccount.isDel, normalStatus)
 		)).get();
 		if (!row) throw new BizError('外部邮箱账号不存在或无权限');
-		const credential = await decryptCredential(c, row);
+		let credential = await decryptCredential(c, row);
 		const result = await getAdapter(row.provider).sendMessage({
 			c,
 			send: row,
 			credential,
 			message: buildExternalSendMessage(params, accountRow)
 		});
+		credential = result.credential || credential;
+		if (result.credential) {
+			await orm(c).update(externalAccount).set({ credential: await encryptCredential(c, credential), lastError: '', status: normalStatus }).where(eq(externalAccount.externalAccountId, row.externalAccountId)).run();
+		}
 		return { data: { id: result.remoteId || result.messageId || '' }, remoteThreadId: result.remoteThreadId || '' };
 	},
 
 	async saveExternalMessage(c, row, message) {
 		const record = buildExternalMailRecord(message, row);
 		const emailRow = await orm(c).insert(email).values(record).returning().get();
-		for (const attachment of message.attachments || []) {
-			const content = attachment.content instanceof ArrayBuffer ? attachment.content : attachment.content?.buffer || attachment.content;
-			const key = `attachments/${await fileUtils.getBuffHash(content)}${fileUtils.getExtFileName(attachment.filename)}`;
-			await r2Service.putObj(c, key, content, {
-				contentType: attachment.mimeType,
-				contentDisposition: `${attachment.contentId ? 'inline' : 'attachment'};filename=${attachment.filename}`
-			});
-			await orm(c).insert(att).values({
-				userId: row.userId,
-				accountId: row.accountId,
-				emailId: emailRow.emailId,
-				key,
-				filename: attachment.filename,
-				mimeType: attachment.mimeType,
-				size: content.byteLength ?? content.length ?? 0,
-				disposition: attachment.disposition,
-				related: attachment.related ? '1' : '0',
-				contentId: attachment.contentId || null,
-				type: attachment.contentId ? 1 : 0
-			}).run();
+		const keys = [];
+		try {
+			for (const attachment of message.attachments || []) {
+				const content = attachment.content instanceof ArrayBuffer ? attachment.content : attachment.content?.buffer || attachment.content;
+				const key = `attachments/${await fileUtils.getBuffHash(content)}${fileUtils.getExtFileName(attachment.filename)}`;
+				keys.push(key);
+				await r2Service.putObj(c, key, content, {
+					contentType: attachment.mimeType,
+					contentDisposition: `${attachment.contentId ? 'inline' : 'attachment'};filename=${attachment.filename}`
+				});
+				await orm(c).insert(att).values({
+					userId: row.userId,
+					accountId: row.accountId,
+					emailId: emailRow.emailId,
+					key,
+					filename: attachment.filename,
+					mimeType: attachment.mimeType,
+					size: content.byteLength ?? content.length ?? 0,
+					disposition: attachment.disposition,
+					related: attachment.related ? '1' : '0',
+					contentId: attachment.contentId || null,
+					type: attachment.contentId ? 1 : 0
+				}).run();
+			}
+			await orm(c).insert(externalMessage).values({
+				externalAccountId: row.externalAccountId,
+				remoteId: message.remoteId,
+				remoteThreadId: message.remoteThreadId || '',
+				emailId: emailRow.emailId
+			}).onConflictDoNothing().run();
+			const mapping = await orm(c).select().from(externalMessage).where(and(
+				eq(externalMessage.externalAccountId, row.externalAccountId),
+				eq(externalMessage.remoteId, message.remoteId)
+			)).get();
+			if (mapping?.emailId !== emailRow.emailId) {
+				await orm(c).delete(att).where(eq(att.emailId, emailRow.emailId)).run();
+				await orm(c).delete(email).where(eq(email.emailId, emailRow.emailId)).run();
+				for (const key of keys) {
+					try { await r2Service.delete(c, key); } catch {}
+				}
+				return null;
+			}
+			return emailRow;
+		} catch (error) {
+			try { await orm(c).delete(att).where(eq(att.emailId, emailRow.emailId)).run(); } catch {}
+			try { await orm(c).delete(email).where(eq(email.emailId, emailRow.emailId)).run(); } catch {}
+			for (const key of keys) {
+				try { await r2Service.delete(c, key); } catch {}
+			}
+			throw error;
 		}
-		await orm(c).insert(externalMessage).values({
-			externalAccountId: row.externalAccountId,
-			remoteId: message.remoteId,
-			remoteThreadId: message.remoteThreadId || '',
-			emailId: emailRow.emailId
-		}).run();
-		return emailRow;
 	},
 
 	async sync(c, externalAccountId, userId) {
@@ -335,11 +365,15 @@ const externalAccountService = {
 				const detail = await adapter.getMessage({ c, receive: row, credential, remoteId: remote.remoteId });
 				const message = detail.message || detail;
 				credential = detail.credential || credential;
-				await this.saveExternalMessage(c, row, {
+				const saved = await this.saveExternalMessage(c, row, {
 					...message,
 					remoteId: message.remoteId || remote.remoteId,
 					remoteThreadId: message.remoteThreadId || remote.remoteThreadId
 				});
+				if (!saved) {
+					skipped++;
+					continue;
+				}
 				added++;
 			} catch {
 				failed++;
