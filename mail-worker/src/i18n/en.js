@@ -68,6 +68,10 @@ const en = {
 	notAdmin: 'The entered email is not an administrator email',
 	emailExistDatabase: 'Email already exists in the database',
 	notConfigOss: 'Object storage not configured',
+	externalAccountNotFound: 'External mailbox does not exist or is not accessible',
+	externalAccountBound: 'This mailbox is already bound',
+	externalCredentialInvalid: 'External mailbox credentials are invalid',
+	externalConnectionFailed: 'External mailbox connection failed',
 	perms: {
 		"邮件": "Emails",
 		"邮件发送": "Send Email",

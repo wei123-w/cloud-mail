@@ -5,12 +5,13 @@ const allowedSecurity = new Set(['tls', 'ssl', 'starttls']);
 const encoder = new TextEncoder();
 
 function validateEndpoint(endpoint = {}, type) {
-	const security = String(endpoint.security || '').toLowerCase();
-	if (!endpoint.host || !allowedSecurity.has(security)) throw new BizError('仅支持加密连接');
+	const host = endpoint.host || endpoint[`${type}Host`];
+	const security = String(endpoint.security || endpoint[`${type}Security`] || '').toLowerCase();
+	if (!host || !allowedSecurity.has(security)) throw new BizError('仅支持加密连接');
 	const defaultPort = type === 'receive' ? 993 : 465;
 	return {
-		host: String(endpoint.host).trim(),
-		port: Number(endpoint.port || defaultPort),
+		host: String(host).trim(),
+		port: Number(endpoint.port || endpoint[`${type}Port`] || defaultPort),
 		security
 	};
 }

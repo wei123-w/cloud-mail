@@ -68,6 +68,10 @@ const zh = {
 	notAdmin: '输入的邮箱不是管理员邮箱',
 	emailExistDatabase: '有邮箱已存在数据库中',
 	notConfigOss: '对象存储未配置',
+	externalAccountNotFound: '外部邮箱账号不存在或无权限',
+	externalAccountBound: '该邮箱已经绑定',
+	externalCredentialInvalid: '外部邮箱凭据无效',
+	externalConnectionFailed: '外部邮箱连接失败',
 	perms: {
 		"邮件": "邮件",
 		"邮件发送": "邮件发送",
