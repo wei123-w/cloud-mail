@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import orm from '../entity/orm.js';
 import account from '../entity/account.js';
 import email from '../entity/email.js';
-import att from '../entity/att.js';
+import { att } from '../entity/att.js';
 import externalAccount from '../entity/external-account.js';
 import externalMessage from '../entity/external-message.js';
 import credentialUtils from '../utils/credential-utils.js';
