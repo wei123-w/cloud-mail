@@ -127,8 +127,8 @@ async function listMessages({ receive, credential, cursor = '', since = '', limi
 		await loginImap(session, credential);
 		const select = await imapCommand(session, 'SELECT', 'SELECT INBOX');
 		assertImapSuccess(select);
-		const start = cursor ? `${Number(cursor) + 1}:*` : '*';
-		const search = since ? `UID SEARCH SINCE ${since}` : `UID SEARCH UID ${start}`;
+		const start = `${Number(cursor) + 1}:*`;
+		const search = since ? `UID SEARCH SINCE ${since}` : (cursor ? `UID SEARCH UID ${start}` : 'UID SEARCH ALL');
 		const response = await imapCommand(session, 'SEARCH', search);
 		assertImapSuccess(response);
 		const ids = response.match(/(?:^|\r?\n)\* SEARCH\s*([^\r\n]*)/i)?.[1]

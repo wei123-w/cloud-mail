@@ -30,7 +30,12 @@ async function completeAuthorization(c, code, state, userId) {
 		const response = await fetch(`${apiBase}/me`, {
 			headers: { Authorization: `Bearer ${accessToken}` }
 		});
-		return readJson(response, '读取微软邮箱资料失败');
+		const profile = await readJson(response, '读取微软邮箱资料失败');
+		return {
+			...profile,
+			email: profile.email || profile.mail || profile.userPrincipalName,
+			name: profile.name || profile.displayName
+		};
 	});
 }
 

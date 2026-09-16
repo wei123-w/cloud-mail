@@ -58,15 +58,24 @@ const requirePerms = [
 	'/regKey/list',
 	'/regKey/delete',
 	'/regKey/clearNotUse',
-	'/regKey/history'
+	'/regKey/history',
+	'/external-account/list',
+	'/external-account/test',
+	'/external-account/add',
+	'/external-account/oauth/start',
+	'/external-account/oauth/callback',
+	'/external-account/sync',
+	'/external-account/reauthorize',
+	'/external-account/update',
+	'/external-account/delete'
 ];
 
 const premKey = {
 	'email:delete': ['/email/delete'],
 	'email:send': ['/email/send'],
-	'account:add': ['/account/add'],
-	'account:query': ['/account/list'],
-	'account:delete': ['/account/delete'],
+	'account:query': ['/account/list', '/external-account/list', '/external-account/test', '/external-account/sync'],
+	'account:delete': ['/account/delete', '/external-account/delete'],
+	'account:add': ['/account/add', '/external-account/add', '/external-account/oauth/start', '/external-account/oauth/callback', '/external-account/reauthorize', '/external-account/update'],
 	'my:delete': ['/my/delete'],
 	'role:add': ['/role/add'],
 	'role:set': ['/role/set','/role/setDefault'],

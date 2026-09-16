@@ -277,6 +277,7 @@ describe('通用邮箱连接适配器', () => {
 		);
 		expect(socket.writes.join('')).toContain('LOGIN');
 		expect(socket.writes.join('')).toContain('SELECT INBOX');
+		expect(socket.writes.join('')).toContain('UID SEARCH ALL');
 	});
 
 	it('收信失败会关闭连接并返回稳定错误', async () => {
