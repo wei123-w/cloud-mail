@@ -91,6 +91,28 @@ function buildExternalMailRecord(message = {}, accountInfo = {}) {
 	};
 }
 
+function normalizeSendAddresses(values = []) {
+	return values.map(value => typeof value === 'string'
+		? { address: value, name: '' }
+		: { address: value.address, name: value.name || '' });
+}
+
+function buildExternalSendMessage(params = {}, accountInfo = {}) {
+	const messageId = params.sendType === 'reply' ? (params.messageId || '') : '';
+	return {
+		from: { address: accountInfo.email || '', name: params.name || '' },
+		to: normalizeSendAddresses(params.receiveEmail || []),
+		cc: normalizeSendAddresses(params.cc || []),
+		bcc: normalizeSendAddresses(params.bcc || []),
+		subject: params.subject || '',
+		text: params.text || '',
+		html: params.html || '',
+		attachments: params.attachments || [],
+		inReplyTo: messageId,
+		relation: messageId
+	};
+}
+
 function getCredentialSecret(c) {
 	const secret = c?.env?.EXTERNAL_CREDENTIAL_SECRET || c?.env?.jwt_secret;
 	if (!secret) throw new BizError('外部邮箱凭据密钥未配置');
@@ -236,6 +258,26 @@ const externalAccountService = {
 		return sanitizeExternalAccount(updated);
 	},
 
+	async send(c, accountRow, params, userId) {
+		if (accountRow.sourceType !== externalSourceType || accountRow.userId !== Number(userId)) {
+			throw new BizError('外部邮箱账号不存在或无权限');
+		}
+		const row = await orm(c).select().from(externalAccount).where(and(
+			eq(externalAccount.accountId, accountRow.accountId),
+			eq(externalAccount.userId, Number(userId)),
+			eq(externalAccount.isDel, normalStatus)
+		)).get();
+		if (!row) throw new BizError('外部邮箱账号不存在或无权限');
+		const credential = await decryptCredential(c, row);
+		const result = await getAdapter(row.provider).sendMessage({
+			c,
+			send: row,
+			credential,
+			message: buildExternalSendMessage(params, accountRow)
+		});
+		return { data: { id: result.remoteId || result.messageId || '' }, remoteThreadId: result.remoteThreadId || '' };
+	},
+
 	async saveExternalMessage(c, row, message) {
 		const record = buildExternalMailRecord(message, row);
 		const emailRow = await orm(c).insert(email).values(record).returning().get();
@@ -339,6 +381,7 @@ const externalAccountService = {
 
 export {
 	buildExternalMailRecord,
+	buildExternalSendMessage,
 	normalizeGenericParams,
 	sanitizeExternalAccount
 };

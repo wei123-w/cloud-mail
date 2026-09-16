@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	buildExternalMailRecord,
+	buildExternalSendMessage,
 	normalizeGenericParams,
 	sanitizeExternalAccount
 } from '../src/service/external-account-service.js';
@@ -80,5 +81,29 @@ describe('外部账号服务', () => {
 		});
 		expect(JSON.parse(result.recipient)).toEqual([{ address: 'bound@example.com', name: '收件人' }]);
 		expect(JSON.parse(result.cc)).toEqual([{ address: 'copy@example.com', name: '抄送' }]);
+	});
+
+	it('外部发信消息会保留回复引用和附件', () => {
+		const result = buildExternalSendMessage({
+			name: '发件人',
+			receiveEmail: ['one@example.com', 'two@example.com'],
+			subject: '回复主题',
+			text: '回复正文',
+			html: '<p>回复正文</p>',
+			attachments: [{ filename: 'a.txt', mimeType: 'text/plain', content: new Uint8Array([1, 2]) }],
+			sendType: 'reply',
+			messageId: '<old@example.com>'
+		}, { email: 'bound@example.com' });
+
+		expect(result).toMatchObject({
+			from: { address: 'bound@example.com', name: '发件人' },
+			inReplyTo: '<old@example.com>',
+			relation: '<old@example.com>'
+		});
+		expect(result.to).toEqual([
+			{ address: 'one@example.com', name: '' },
+			{ address: 'two@example.com', name: '' }
+		]);
+		expect(result.attachments).toHaveLength(1);
 	});
 });

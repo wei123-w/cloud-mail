@@ -5,6 +5,7 @@ import { attConst, emailConst, isDel, settingConst } from '../const/entity-const
 import { and, desc, eq, gt, inArray, notInArray, lt, count, asc, sql, ne, or, like, lte, gte } from 'drizzle-orm';
 import { star } from '../entity/star';
 import settingService from './setting-service';
+import externalAccountService from './external-account-service';
 import accountService from './account-service';
 import BizError from '../error/biz-error';
 import emailUtils from '../utils/email-utils';
@@ -320,7 +321,7 @@ const emailService = {
 
 		if (c.env.admin !== userRow.email) {
 			//用户没有这个域名的使用权限
-			if(!roleService.hasAvailDomainPerm(roleRow.availDomain, accountRow.email)) {
+			if (accountRow.sourceType !== 1 && !roleService.hasAvailDomainPerm(roleRow.availDomain, accountRow.email)) {
 				throw new BizError(t('noDomainPermSend'),403)
 			}
 
@@ -331,7 +332,7 @@ const emailService = {
 		const useCloudflareEmail = !!c.env.email;
 
 		//如果接收方存在站外邮箱，又没有发信服务
-		if (!useCloudflareEmail && !resendToken && !allInternal) {
+		if (accountRow.sourceType !== 1 && !useCloudflareEmail && !resendToken && !allInternal) {
 			throw new BizError(t('noSendProvider'));
 		}
 
@@ -357,8 +358,18 @@ const emailService = {
 
 		let sendResult = {};
 
-		//存在站外邮箱时，如果配置了 Cloudflare Email Service 就优先使用，否则使用 Resend
-		if (!allInternal) {
+		if (accountRow.sourceType === 1) {
+			sendResult = await externalAccountService.send(c, accountRow, {
+				name,
+				receiveEmail,
+				subject,
+				text,
+				html,
+				attachments: await this.toArrayBufferAttachments([...imageDataList, ...attachments]),
+				sendType,
+				messageId: emailRow.messageId
+			}, userId);
+		} else if (!allInternal) {
 
 			if (useCloudflareEmail) {
 				sendResult = await this.sendByCloudflareEmail(c, {
@@ -412,6 +423,9 @@ const emailService = {
 		emailData.type = emailConst.type.SEND;
 		emailData.userId = userId;
 		emailData.resendEmailId = data?.id;
+		if (accountRow.sourceType === 1) {
+			emailData.messageId = data?.id || '';
+		}
 
 		const recipient = [];
 
