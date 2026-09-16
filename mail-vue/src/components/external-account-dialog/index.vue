@@ -56,7 +56,6 @@
               <el-select v-model="form.receive.security" class="full">
                 <el-option label="TLS" value="tls" />
                 <el-option label="SSL" value="ssl" />
-                <el-option label="STARTTLS" value="starttls" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -65,7 +64,6 @@
               <el-select v-model="form.send.security" class="full">
                 <el-option label="TLS" value="tls" />
                 <el-option label="SSL" value="ssl" />
-                <el-option label="STARTTLS" value="starttls" />
               </el-select>
             </el-form-item>
           </el-col>

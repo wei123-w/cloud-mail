@@ -96,18 +96,18 @@ const dbInit = {
 			);`
 		];
 
-		try {
-			await c.env.db.prepare(`ALTER TABLE external_account ADD COLUMN status INTEGER NOT NULL DEFAULT 0;`).run();
-		} catch (e) {
-			console.warn(`跳过外部账号状态字段：${e.message}`);
-		}
-
 		for (const statement of statements) {
 			try {
 				await c.env.db.prepare(statement).run();
 			} catch (e) {
 				console.warn(`跳过数据库升级：${e.message}`);
 			}
+		}
+
+		try {
+			await c.env.db.prepare(`ALTER TABLE external_account ADD COLUMN status INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过外部账号状态字段：${e.message}`);
 		}
 
 		const indexes = [

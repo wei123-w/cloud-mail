@@ -41,6 +41,11 @@ orm_log = false
 domain = ["xiaoyugonju.eu.cc", "xiaoyuyouxiang.dpdns.org"]
 admin = "admin@xiaoyugonju.eu.cc"
 jwt_secret = "IN3yBcUEbdWa2CkQHiTuSqYV91xAzODm"
+EXTERNAL_GOOGLE_CLIENT_ID = ""
+EXTERNAL_GOOGLE_REDIRECT_URI = "https://xiaoyugonju.eu.cc/external-account/oauth/callback"
+EXTERNAL_MICROSOFT_CLIENT_ID = ""
+EXTERNAL_MICROSOFT_REDIRECT_URI = "https://xiaoyugonju.eu.cc/external-account/oauth/callback"
+# 使用 wrangler secret put 注入 EXTERNAL_CREDENTIAL_SECRET 和两个客户端密钥
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"

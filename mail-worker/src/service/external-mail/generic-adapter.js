@@ -1,7 +1,7 @@
 import BizError from '../../error/biz-error.js';
 import mimeService from './mime-service.js';
 
-const allowedSecurity = new Set(['tls', 'ssl', 'starttls']);
+const allowedSecurity = new Set(['tls', 'ssl']);
 const encoder = new TextEncoder();
 
 function validateEndpoint(endpoint = {}, type) {
@@ -101,7 +101,7 @@ async function openSession(endpoint, type, connect) {
 	const connector = await getConnector(connect);
 	const socket = await connector(
 		{ hostname: normalized.host, port: normalized.port },
-		{ secureTransport: normalized.security === 'starttls' ? 'starttls' : 'on' }
+		{ secureTransport: 'on' }
 	);
 	return new TextSession(socket);
 }

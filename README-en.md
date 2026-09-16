@@ -49,6 +49,8 @@ With only one domain, you can create multiple different email addresses, similar
 
 - **📧 Email Sending**: Integrated with Resend, supporting bulk email sending and attachments.
 
+- **📬 External mailboxes**: Bind Google, Microsoft, or generic IMAP/SMTP mailboxes independently to receive and send mail.
+
 - **🛡️ Admin Features**: Admin controls for user and email management with RBAC-based access control.
 
 - **📦 Attachment Support**: Send and receive attachments, stored and downloaded via R2 object storage.
@@ -66,6 +68,32 @@ With only one domain, you can create multiple different email addresses, similar
 - **🤖 CAPTCHA**: Integrated with Turnstile CAPTCHA to prevent automated registration.
 
 - **📜 More Features**: Under development...
+
+## External mailbox configuration
+
+After signing in, choose “Bind External Mailbox” in the mailbox sidebar. Google and Microsoft use authorization; other providers use “Generic mailbox” with IMAP receiving, SMTP sending, username, and an app password. Generic connections only allow TLS or SSL.
+
+Use the same variable names in development, test, and production:
+
+| Variable | Description |
+| --- | --- |
+| `EXTERNAL_CREDENTIAL_SECRET` | Strong random key used to encrypt external credentials |
+| `EXTERNAL_GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `EXTERNAL_GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `EXTERNAL_GOOGLE_REDIRECT_URI` | Google callback URL ending at `/external-account/oauth/callback` |
+| `EXTERNAL_MICROSOFT_CLIENT_ID` | Microsoft OAuth application ID |
+| `EXTERNAL_MICROSOFT_CLIENT_SECRET` | Microsoft OAuth client secret |
+| `EXTERNAL_MICROSOFT_REDIRECT_URI` | Microsoft callback URL ending at `/external-account/oauth/callback` |
+
+Put client IDs and callback URLs in the relevant `wrangler` variable section. Inject encryption and client secrets with secret management commands:
+
+```bash
+wrangler secret put EXTERNAL_CREDENTIAL_SECRET
+wrangler secret put EXTERNAL_GOOGLE_CLIENT_SECRET
+wrangler secret put EXTERNAL_MICROSOFT_CLIENT_SECRET
+```
+
+Google requires Gmail API and mail read/write and send permissions. Microsoft requires `Mail.ReadWrite`, `Mail.Send`, and `offline_access`. Tokens are stored only in encrypted form; scheduled synchronization runs hourly. Unbinding hides the external mailbox without deleting already synchronized local mail.
 
 ## Tech Stack
 

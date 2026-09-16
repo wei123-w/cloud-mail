@@ -54,6 +54,8 @@
 
 - **📧 邮件发送**：集成Resend发送邮件，支持群发，内嵌图片和附件发送，发送状态查看
 
+- **📬 外部邮箱绑定**：可独立绑定 Google、Microsoft 或通用 IMAP/SMTP 邮箱，收取邮件并使用外部地址发信
+
 - **🛡️ 管理员功能**：可以对用户，邮件进行管理，RABC权限控制对功能及使用资源限制
 
 - **📦 附件收发**：支持收发附件，使用R2对象存储保存和下载文件
@@ -71,6 +73,32 @@
 - **🤖 人机验证**：集成Turnstile人机验证，防止人机批量注册
 
 - **📜 更多功能**：正在开发中...
+
+## 外部邮箱配置
+
+登录后在邮箱侧栏选择“绑定其他邮箱”。Google 和 Microsoft 使用授权登录；其他服务商选择“通用邮箱”，填写收信 IMAP、发信 SMTP、用户名和应用专用密码。通用连接只允许 TLS 或 SSL，不支持明文密码连接。
+
+常见配置变量如下，开发、测试和生产环境名称保持一致：
+
+| 变量 | 说明 |
+| --- | --- |
+| `EXTERNAL_CREDENTIAL_SECRET` | 外部邮箱凭据加密密钥，必须使用高强度随机值 |
+| `EXTERNAL_GOOGLE_CLIENT_ID` | Google OAuth 客户端编号 |
+| `EXTERNAL_GOOGLE_CLIENT_SECRET` | Google OAuth 客户端密钥 |
+| `EXTERNAL_GOOGLE_REDIRECT_URI` | Google 授权回调地址，指向 `/external-account/oauth/callback` |
+| `EXTERNAL_MICROSOFT_CLIENT_ID` | Microsoft OAuth 应用编号 |
+| `EXTERNAL_MICROSOFT_CLIENT_SECRET` | Microsoft OAuth 客户端密钥 |
+| `EXTERNAL_MICROSOFT_REDIRECT_URI` | Microsoft 授权回调地址，指向 `/external-account/oauth/callback` |
+
+客户端编号和回调地址可以写入对应 `wrangler` 配置的变量区；加密密钥和客户端密钥请使用密钥管理命令注入：
+
+```bash
+wrangler secret put EXTERNAL_CREDENTIAL_SECRET
+wrangler secret put EXTERNAL_GOOGLE_CLIENT_SECRET
+wrangler secret put EXTERNAL_MICROSOFT_CLIENT_SECRET
+```
+
+Google 应用需要启用 Gmail API 并申请邮件读写、发信权限；Microsoft 应用需要申请 `Mail.ReadWrite`、`Mail.Send` 和 `offline_access` 权限。绑定成功后令牌只以加密形式保存，定时任务每小时增量同步，侧栏也可以手动同步。解除绑定只隐藏外部账号，不删除已经同步到本系统的邮件。
 
 
 
@@ -153,6 +181,4 @@ cloud-mail
 ## 交流
 
 [Telegram](https://t.me/cloud_mail_tg)
-
-
 

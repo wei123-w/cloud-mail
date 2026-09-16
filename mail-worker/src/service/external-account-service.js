@@ -320,7 +320,6 @@ const externalAccountService = {
 		let added = 0;
 		let skipped = 0;
 		let failed = 0;
-		let cursor = row.syncCursor || '';
 		for (const remote of listResult.messages || []) {
 			try {
 				const exists = await orm(c).select().from(externalMessage).where(and(
@@ -329,7 +328,6 @@ const externalAccountService = {
 				)).get();
 				if (exists) {
 					skipped++;
-					cursor = remote.remoteId;
 					continue;
 				}
 				const detail = await adapter.getMessage({ c, receive: row, credential, remoteId: remote.remoteId });
@@ -341,11 +339,11 @@ const externalAccountService = {
 					remoteThreadId: message.remoteThreadId || remote.remoteThreadId
 				});
 				added++;
-				cursor = remote.remoteId;
 			} catch {
 				failed++;
 			}
 		}
+		const cursor = failed ? (row.syncCursor || '') : (listResult.cursor || row.syncCursor || '');
 		await orm(c).update(externalAccount).set({
 			credential: await encryptCredential(c, credential),
 			syncCursor: cursor || listResult.cursor || '',

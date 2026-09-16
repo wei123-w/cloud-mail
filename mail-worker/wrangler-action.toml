@@ -43,6 +43,11 @@ domain = "${DOMAIN}"
 admin = "${ADMIN}"
 jwt_secret = "${JWT_SECRET}"
 project_link = "${PROJECT_LINK}"
+EXTERNAL_GOOGLE_CLIENT_ID = "${EXTERNAL_GOOGLE_CLIENT_ID}"
+EXTERNAL_GOOGLE_REDIRECT_URI = "${EXTERNAL_GOOGLE_REDIRECT_URI}"
+EXTERNAL_MICROSOFT_CLIENT_ID = "${EXTERNAL_MICROSOFT_CLIENT_ID}"
+EXTERNAL_MICROSOFT_REDIRECT_URI = "${EXTERNAL_MICROSOFT_REDIRECT_URI}"
+# EXTERNAL_CREDENTIAL_SECRET 和两个客户端密钥通过部署环境的密钥注入
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"
